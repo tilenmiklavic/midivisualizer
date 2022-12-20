@@ -16,10 +16,8 @@
     parseFile(files[0])
 	}
 
-  var clickEvent = new MouseEvent("click", {
-      "view": window,
-      "bubbles": true,
-      "cancelable": false
+  onMount(async () => {
+    loadPlugin();
   });
 
   function loadPlugin() {
@@ -37,10 +35,6 @@
       }
     });
   }
-
-  onMount(async () => {
-		loadPlugin();
-	});
 
   function parseFile(file) {
     //read the file
@@ -82,8 +76,8 @@
     let notes = currentMidi.tracks[track].notes
 
     notePressed(notes[index].midi - 30, true);
+    playNote(0, notes[index].midi, notes[index].velocity, 0);
     setTimeout(function() {
-      playNote(0, notes[index + 1].midi, notes[index + 1].velocity, 0);
       notePressed(notes[index].midi - 30, false);
       generateNewBlock(index + 1, track)
     }, (notes[index + 1].ticks - notes[index].ticks) * tickDurationInMilis)
@@ -120,14 +114,11 @@
   }
 
   function playNote(channel, note, velocity, delay) {
-    MIDI.noteOn(channel, note, velocity, delay);
-
-    const el = document.getElementById("note0");
-    el.focus();    
+    MIDI.noteOn(channel, note, velocity, delay);  
   }
 
   function createNote(note, velocity, delay) {
-   playNote(0, note, velocity, delay);
+    playNote(0, note, velocity, delay);
   }
 
   function stopNotes() {
@@ -143,16 +134,19 @@
       const block = document.createElement('div');
       block.textContent = '.'
 
+      // width
       block.setAttribute(
         'style',
         'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw;'
       );
 
+      // class
       block.setAttribute(
         'class',
         'block'
       );
 
+      // id
       block.setAttribute(
         'id',
         testingId
@@ -162,10 +156,10 @@
 
       const el = document.getElementById(testingId)
       el.animate([
-        { transform: 'translateY(-86vh)' }
+        { transform: 'translateY(-860vh)' }
       ],{
         // timing options
-        duration: fieldTime,
+        duration: fieldTime * 10,
         iterations: 1
       })
 

@@ -90,8 +90,8 @@ button:focus-visible {
   background-color: red;
   /* width: 1vw; */
   position: absolute;
-  bottom: -86vh;
-  height: 100vh;
+  bottom: -986vh;
+  height: 1000vh;
 }
 
 .translate {
