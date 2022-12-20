@@ -75,10 +75,25 @@
 
     let notes = currentMidi.tracks[track].notes
 
+    let pressedNote = document.getElementById("note0")
+
+    if (isWhiteNote(notes[index].midi - 30)) {
+      pressedNote.classList.add("white_note_pressed");
+    } else {
+      pressedNote.classList.add("black_note_pressed");
+    }
+
     notePressed(notes[index].midi - 30, true);
-    playNote(0, notes[index].midi, notes[index].velocity, 0);
+    playNote(0, notes[index].midi, notes[index].velocity, 0, true);
+
+    // release the note
     setTimeout(function() {
       notePressed(notes[index].midi - 30, false);
+      playNote(0, notes[index].midi, notes[index].velocity, 0, false);
+    }, (notes[index].durationTicks) * tickDurationInMilis)
+
+    // play next tone
+    setTimeout(function() {
       generateNewBlock(index + 1, track)
     }, (notes[index + 1].ticks - notes[index].ticks) * tickDurationInMilis)
   }
@@ -113,8 +128,12 @@
     }
   }
 
-  function playNote(channel, note, velocity, delay) {
-    MIDI.noteOn(channel, note, velocity, delay);  
+  function playNote(channel, note, velocity, delay, press) {
+    if (press) {
+      MIDI.noteOn(channel, note, velocity, delay);  
+    } else {
+      MIDI.noteOff(channel, note, velocity, delay);  
+    }
   }
 
   function createNote(note, velocity, delay) {
@@ -130,6 +149,8 @@
     if (pressDown) {
       let testingId = guidGenerator();
       let startTime = new Date().getTime();
+
+      let note = document.getElementById("note" + index)
 
       const block = document.createElement('div');
       block.textContent = '.'
@@ -229,6 +250,14 @@
       return blackNoteWidth
     } else {
       return whiteNoteWidth
+    }
+  }
+
+  function isWhiteNote(index) {
+    if (blackNoteIndex.includes(index % 12)) {
+      return false
+    } else {
+      return true
     }
   }
 
