@@ -2,12 +2,15 @@
 // @ts-nocheck
   import { Midi } from '@tonejs/midi'
   import { onMount } from 'svelte'
+  import RangeSlider from "svelte-range-slider-pips";
 
-  let files, midiFile, currentMidi, buffer = [], tickDuration = 0.0015, tickDurationInMilis = 1.5, currentNote, notes = [...Array(96).keys()];
+  let files, transpose, currentMidi, buffer = [], tickDuration = 0.0015, tickDurationInMilis = 1.5, currentNote, notes = [...Array(96).keys()];
   let fieldStart = 0, fieldEnd = 86, fieldTime = 1000, blockBuffer= [], blockMap = new Map();
   let whiteNoteWidth = 1.785, blackNoteWidth = 1.2;
   let blackNoteIndex = [1,3,5,8,10], whiteNotesFirstGroup = [3,5,7];
   let blockContainer;
+	
+	let values = [50]
 
   $: if (files) {
 		// Note that `files` is of type `FileList`, not an Array:
@@ -16,6 +19,14 @@
     parseFile(files[0])
 	}
 
+  $: if (values) {
+    for (let key of blockMap.keys()) {
+      notePressed(key, false)
+    }
+
+    blockMap = new Map();
+  }
+
   onMount(async () => {
     loadPlugin();
   });
@@ -23,15 +34,22 @@
   function loadPlugin() {
     MIDI.loadPlugin({
       soundfontUrl: "./midi_player/examples/soundfont/",
-      instrument: 0,
+      instrument: [0,0,0,0,0],
       onprogress: function(state, progress) {
         console.log("State",state, progress);
         console.log(MIDI);
+
+        for (let i = 0; i < 5; i++) {
+          MIDI.channels[i].instrument = 0
+        }
       },
       onsuccess: function() {
         // play the note
         MIDI.setVolume(0, 127);
         MIDI.setVolume(1, 127);
+        MIDI.setVolume(2, 127);
+        MIDI.setVolume(3, 127);
+        MIDI.setVolume(4, 127);
       }
     });
   }
@@ -49,23 +67,16 @@
     reader.readAsArrayBuffer(file);
   }
 
-  function playFile() {
-    let numberOfTicks = currentMidi.tracks[0].endOfTrackTicks;
-    let notes = currentMidi.tracks[0].notes;
-    // let notes1 = currentMidi.tracks[1].notes;
-
-    setTimeout(function() {
-      generateNewBlock(0,0)
-    }, notes[0].ticks * tickDurationInMilis)
-    // generateNewBlock(0, 1)
-    
-    for (let i = 0; i < notes.length; i++) {
-      // playNote(0, notes[i].midi, notes[i].velocity, notes[i].ticks * tickDuration);
-
-      // if (i < notes1.length) {
-      //   playNote(0, notes1[i].midi, notes1[i].velocity, notes1[i].ticks * tickDuration);
-      // }
+  function playFile() {    
+    for (let i = 0; i < currentMidi.tracks.length; i++) {
+      setTimeout(function() {
+        generateNewBlock(0,i)
+      }, currentMidi.tracks[i].notes[0].ticks * tickDurationInMilis)
     }
+
+    // setTimeout(function() {
+    //   generateNewBlock(0,0)
+    // }, currentMidi.tracks[0].notes[0].ticks * tickDurationInMilis)
   }
 
   function generateNewBlock(index, track) {
@@ -77,80 +88,31 @@
 
     let pressedNote = document.getElementById("note0")
 
-    if (isWhiteNote(notes[index].midi - 30)) {
+    if (isWhiteNote(notes[index].midi)) {
       pressedNote.classList.add("white_note_pressed");
     } else {
       pressedNote.classList.add("black_note_pressed");
     }
 
-    notePressed(notes[index].midi - 30, true);
-    playNote(0, notes[index].midi, notes[index].velocity, 0, true);
+    notePressed(notes[index].midi + values[0] - 50, true, track, notes[index].velocity, 0);
 
     // release the note
     setTimeout(function() {
-      notePressed(notes[index].midi - 30, false);
-      playNote(0, notes[index].midi, notes[index].velocity, 0, false);
+      notePressed(notes[index].midi + values[0] - 50, false, track);
     }, (notes[index].durationTicks) * tickDurationInMilis)
 
     // play next tone
-    setTimeout(function() {
-      generateNewBlock(index + 1, track)
-    }, (notes[index + 1].ticks - notes[index].ticks) * tickDurationInMilis)
-  }
-
-  function playBuffer() {
-    if (playing) {
-      return; 
-    } else {
-      playing = true;
-      MIDI.loadPlugin({
-      soundfontUrl: "./midi_player/examples/soundfont/",
-      instrument: "acoustic_grand_piano",
-      onprogress: function(state, progress) {
-        console.log(state, progress);
-      },
-      onsuccess: function() {
-        // play the note
-        MIDI.setVolume(0, 127);
-
-        while (buffer.length > 0) {
-          let tone = buffer.shift();
-          let note = tone.note;
-          let velocity = tone.velocity;
-          let delay = tone.delay;
-          MIDI.noteOn(0, note, velocity, delay);
-          MIDI.noteOff(0, note, delay + 0.75);
-        }
-
-        playing = false;
-      }
-    });
+    if (index < notes.length - 1) {
+      setTimeout(function() {
+        generateNewBlock(index + 1, track)
+      }, (notes[index + 1].ticks - notes[index].ticks) * tickDurationInMilis)
     }
   }
 
-  function playNote(channel, note, velocity, delay, press) {
-    if (press) {
-      MIDI.noteOn(channel, note, velocity, delay);  
-    } else {
-      MIDI.noteOff(channel, note, velocity, delay);  
-    }
-  }
-
-  function createNote(note, velocity, delay) {
-    playNote(0, note, velocity, delay);
-  }
-
-  function stopNotes() {
-    MIDI.stopAllNotes()
-    // MIDI.stop()
-  }
-
-  function notePressed(index, pressDown) {
+  function notePressed(index, pressDown, channel = 0, velocity = 10, delay = 0) {
     if (pressDown) {
       let testingId = guidGenerator();
       let startTime = new Date().getTime();
-
-      let note = document.getElementById("note" + index)
 
       const block = document.createElement('div');
       block.textContent = '.'
@@ -158,7 +120,7 @@
       // width
       block.setAttribute(
         'style',
-        'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw;'
+        'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw; opacity:' + velocity + ';'
       );
 
       // class
@@ -185,9 +147,13 @@
       })
 
       blockMap.set(index, {element: el, startTime: startTime})
+
+      MIDI.noteOn(channel, index + 21, velocity, delay);  
+
     } else {
       let endTime = new Date().getTime();
       let block = blockMap.get(index);
+      console.log(index)
       let el = block.element;
       let startTime = block.startTime;
       
@@ -196,6 +162,8 @@
       el.style.clip = "rect(0px,100vw," + height + "vh,0px)";
 
       blockMap.delete(index)
+
+      MIDI.noteOff(channel, index + 21, 0);  
 
       setTimeout(function() {el.remove()}, fieldTime)
     }
@@ -266,46 +234,41 @@
        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
     };
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
-}
-
+  }
 </script>
 
 <main>
-  <!-- <div>
-    <a href="https://vitejs.dev" target="_blank" rel="noreferrer"> 
-      <img src="/vite.svg" class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer"> 
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div> -->
-  <h1>Midi Visualizer</h1>
 
-  <p class="read-the-docs">
-    Visualizing MIDI tracks
-  </p>
-
-
-  <div>
-    <label for="avatar">Upload a MIDI file:</label>
-    <input
-      bind:files
-      id="filereader"
-      name="midifilereader"
-      type="file"
-    />
-  </div>
-
-  <div>
-    <button on:click={() => {createNote(60, 127, 0)}}>Play note</button>
-    <button on:click={stopNotes}>Stop notes</button>
-  </div>
-
-  <!-- {#each blockBuffer as block}
-    <div>
-      <div style="left: {block.position}vw" class="block translate">Hello</div>
+  <div class="row">
+    <div class="container col">
+      <div class="row">
+        <h1>Midi Visualizer</h1>
+      </div>
+  
+      <div class="row">
+        <p class="read-the-docs">
+          Visualizing MIDI tracks
+        </p>
+      </div>
+    
+    
+    
+      <div class="row">
+        <div class="col">
+          <input
+            bind:files
+            id="filereader"
+            name="midifilereader"
+            type="file"
+          />
+        </div>
+      </div>
     </div>
-  {/each} -->
+    <div class="col">
+      <RangeSlider bind:values pips all="label" />
+    </div>
+  </div>
+
   <div bind:this={blockContainer}>
 
   </div>
