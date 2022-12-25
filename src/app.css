@@ -99,3 +99,20 @@ button:focus-visible {
   transition-timing-function: linear;
   translate: 0px -86vh;
 }
+
+.form-range {
+  margin-right: 3rem;
+}
+
+.rangeSliderMargin {
+  margin-right: 3rem;
+}
+
+input[type=range][orient=vertical]
+{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* Chromium */
+    width: 8px;
+    height: 175px;
+    padding: 0 5px;
+}

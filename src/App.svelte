@@ -4,13 +4,15 @@
   import { onMount } from 'svelte'
   import RangeSlider from "svelte-range-slider-pips";
 
-  let files, transpose, currentMidi, buffer = [], tickDuration = 0.0015, tickDurationInMilis = 1.5, currentNote, notes = [...Array(96).keys()];
+  let files, transpose, currentMidi, buffer = [], tickDuration = 0.0001, tickDurationInMilis = 1, currentNote, notes = [...Array(96).keys()];
   let fieldStart = 0, fieldEnd = 86, fieldTime = 1000, blockBuffer= [], blockMap = new Map();
   let whiteNoteWidth = 1.785, blackNoteWidth = 1.2;
   let blackNoteIndex = [1,3,5,8,10], whiteNotesFirstGroup = [3,5,7];
   let blockContainer;
-	
+  let tracks = [];
+  let channelVolumes = [];
 	let values = [50]
+  let tempoSlider = 1
 
   $: if (files) {
 		// Note that `files` is of type `FileList`, not an Array:
@@ -36,8 +38,13 @@
       soundfontUrl: "./midi_player/examples/soundfont/",
       instrument: [0,0,0,0,0],
       onprogress: function(state, progress) {
-        console.log("State",state, progress);
-        console.log(MIDI);
+        //tracks = MIDI.tracks;
+
+        if (tracks && tracks.length > 0) {
+          for (let i = 0; i < tracks.length; i++) {
+            channelVolumes.push([50])
+          }
+        }
 
         for (let i = 0; i < 5; i++) {
           MIDI.channels[i].instrument = 0
@@ -60,7 +67,13 @@
     reader.onload = function (e) {
       const midi = new Midi(e.target.result);
       currentMidi = midi;
-      console.log(currentMidi)
+      tracks = currentMidi.tracks;
+
+      for (let i = 0; i < tracks.length; i++) {
+        channelVolumes.push(100);
+      }
+
+      console.log("Current midi", currentMidi)
 
       playFile();
     };
@@ -110,6 +123,7 @@
   }
 
   function notePressed(index, pressDown, channel = 0, velocity = 10, delay = 0) {
+    console.log(channelVolumes)
     if (pressDown) {
       let testingId = guidGenerator();
       let startTime = new Date().getTime();
@@ -120,7 +134,7 @@
       // width
       block.setAttribute(
         'style',
-        'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw; opacity:' + velocity + ';'
+        'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw; opacity:' + velocity * (channelVolumes[channel] / 100) + ';'
       );
 
       // class
@@ -148,12 +162,12 @@
 
       blockMap.set(index, {element: el, startTime: startTime})
 
-      MIDI.noteOn(channel, index + 21, velocity, delay);  
+      MIDI.noteOn(channel, index + 21, velocity * (channelVolumes[channel] / 100), delay);  
 
     } else {
       let endTime = new Date().getTime();
       let block = blockMap.get(index);
-      console.log(index)
+      //console.log(index)
       let el = block.element;
       let startTime = block.startTime;
       
@@ -264,8 +278,28 @@
         </div>
       </div>
     </div>
-    <div class="col">
-      <RangeSlider bind:values pips all="label" />
+    <div class="col mt-3 pr-5 pl-5">
+      <div>
+        Transpose
+      </div>
+      <div class="row rangeSliderMargin">
+        <RangeSlider bind:values pips all="label" />
+      </div>
+      <div>
+        Tempo
+      </div>
+      <div class="row rangeSliderMargin">
+        <input type="range" class="form-range" id="customRange" min="0.1" max="10" step="0.01" bind:value={tickDurationInMilis}>
+      </div>
+      <div class="row">
+        {#each tracks as channel, i}
+        <div class="col">
+          <input type="range" class="form-range" id="customRange1" bind:value={channelVolumes[i]} orient="vertical">
+          <label for="customRange1" class="form-label">Channel {i + 1} volume</label>
+        </div>
+          <!-- <RangeSlider bind:channelVolumes[i] pips vertical=true /> -->
+        {/each}
+      </div>
     </div>
   </div>
 
