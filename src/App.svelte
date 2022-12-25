@@ -124,6 +124,7 @@
 
   function notePressed(index, pressDown, channel = 0, velocity = 10, delay = 0) {
     console.log(channelVolumes)
+    let trueVelocity = channelVolumes.length > 0 ? velocity * (channelVolumes[channel] / 100) : velocity;
     if (pressDown) {
       let testingId = guidGenerator();
       let startTime = new Date().getTime();
@@ -134,7 +135,7 @@
       // width
       block.setAttribute(
         'style',
-        'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw; opacity:' + velocity * (channelVolumes[channel] / 100) + ';'
+        'width: ' + calculateBlockWidth(index) + 'vw; left: ' + calculateBlockPosition(index) + 'vw; opacity:' + trueVelocity + ';'
       );
 
       // class
@@ -162,7 +163,7 @@
 
       blockMap.set(index, {element: el, startTime: startTime})
 
-      MIDI.noteOn(channel, index + 21, velocity * (channelVolumes[channel] / 100), delay);  
+      MIDI.noteOn(channel, index + 21, trueVelocity, delay);  
 
     } else {
       let endTime = new Date().getTime();
