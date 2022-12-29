@@ -1,11 +1,34 @@
+<svelte:head>
+  <!-- <script src="./midi_player/build/MIDI.js" type="text/javascript" on:load={scriptLoaded}></script> -->
+  <script src="./midi_player/build/MIDI.js" on:load={scriptLoaded} lang="ts"></script>
+  <!-- shims -->
+  <!-- <script src="./midi_player/inc/shim/Base64.js" type="text/javascript"></script> -->
+  <script src="./midi_player/inc/shim/Base64binary.js" type="text/javascript" on:load={scriptLoaded}></script>
+  <!-- <script src="./midi_player/inc/shim/WebAudioAPI.js" type="text/javascript"></script> -->
+  <!-- midi.js -->
+  <!-- <script src="./midi_player/js/midi/audioDetect.js" type="text/javascript"></script> -->
+  <!-- <script src="./midi_player/js/midi/gm.js" type="text/javascript"></script> -->
+  <!-- <script src="./midi_player/js/midi/loader.js" type="text/javascript"></script> -->
+  <!-- <script src="./midi_player/js/midi/plugin.audiotag.js" type="text/javascript"></script> -->
+  <!-- <script src="./midi_player/js/midi/plugin.webaudio.js" type="text/javascript"></script> -->
+  <!-- <script src="./midi_player/js/midi/plugin.webmidi.js" type="text/javascript"></script> -->
+  <!-- utils -->
+  <!-- <script src="./midi_player/js/util/dom_request_xhr.js" type="text/javascript"></script> -->
+  <!-- <script src="./midi_player/js/util/dom_request_script.js" type="text/javascript"></script> -->
+</svelte:head>
+
 <script>
 // @ts-nocheck
   import { Midi } from '@tonejs/midi'
   import { onMount } from 'svelte'
   import RangeSlider from "svelte-range-slider-pips";
 
+  // import './midi_player/inc/shim/Base64'
+  // import './assets/js/MIDI.js'
+  // import './assets/js/Base64binary.js'
+
   let files, transpose, currentMidi, buffer = [], tickDuration = 0.0001, tickDurationInMilis = 1, currentNote, notes = [...Array(96).keys()];
-  let fieldStart = 0, fieldEnd = 86, fieldTime = 1000, blockBuffer= [], blockMap = new Map();
+  let fieldStart = 0, fieldEnd = 86, fieldTime = 1000, blockBuffer= [], blockMap = new Map(), scriptsLoaded = 0;
   let whiteNoteWidth = 1.785, blackNoteWidth = 1.2;
   let blackNoteIndex = [1,3,5,8,10], whiteNotesFirstGroup = [3,5,7];
   let blockContainer;
@@ -29,11 +52,20 @@
     blockMap = new Map();
   }
 
+  function scriptLoaded() {
+    if (scriptsLoaded == 0) {
+      scriptsLoaded++;
+    } else {
+      loadPlugin()
+    }
+  }
+
   onMount(async () => {
-    loadPlugin();
+    //loadPlugin();
   });
 
   function loadPlugin() {
+    console.log("Loading plugin")
     MIDI.loadPlugin({
       soundfontUrl: "./midi_player/examples/soundfont/",
       instrument: [0,0,0,0,0],
@@ -264,9 +296,7 @@
         <p class="read-the-docs">
           Visualizing MIDI tracks
         </p>
-      </div>
-    
-    
+      </div>    
     
       <div class="row">
         <div class="col">
@@ -358,4 +388,123 @@
   .read-the-docs {
     color: #888;
   }
+
+  :root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  /* display: flex; */
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+.card {
+  padding: 2em;
+}
+
+#app {
+  margin: 0;
+  /* padding: 2rem; */
+  text-align: center;
+  height: 100vh;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+.fullWidth {
+  width: 100%;
+  /* background-color: red; */
+  float: bottom;
+}
+
+.block {
+  background-color: red;
+  /* width: 1vw; */
+  position: absolute;
+  bottom: -986vh;
+  height: 1000vh;
+}
+
+.translate {
+  transition: translate 1s;
+  transition-timing-function: linear;
+  translate: 0px -86vh;
+}
+
+.form-range {
+  margin-right: 3rem;
+}
+
+.rangeSliderMargin {
+  margin-right: 3rem;
+}
+
+input[type=range][orient=vertical]
+{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* Chromium */
+    width: 8px;
+    height: 175px;
+    padding: 0 5px;
+}
 </style>
